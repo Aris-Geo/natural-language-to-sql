@@ -1,0 +1,124 @@
+version: '3.8'
+
+services:
+  # PostgreSQL with sample data
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      POSTGRES_DB: ecommerce_demo
+      POSTGRES_USER: demo_user
+      POSTGRES_PASSWORD: demo_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql # include this if you wish to use the init.sql file and test your dataset
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U demo_user -d ecommerce_demo"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - text-to-sql-network
+
+  # ollama service for LLM inference
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
+      - OLLAMA_HOST=0.0.0.0
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - text-to-sql-network
+
+  # schema validation service
+  schema-validator:
+    build: ./services/schema_validator
+    container_name: schema-validator
+    environment:
+      - DEBUG=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - text-to-sql-network
+
+  # query generation service
+  query-generator:
+    build: ./services/query_generator
+    container_name: query-generator
+    environment:
+      - DEBUG=true
+      - OLLAMA_HOST=ollama
+      - OLLAMA_MODEL=codellama:7b
+    depends_on:
+      ollama:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    networks:
+      - text-to-sql-network
+
+  query-executor:
+    build: ./services/query_executor
+    container_name: query-executor
+    environment:
+      - DEBUG=true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - text-to-sql-network
+
+  api-gateway:
+    build: ./services/api_gateway
+    container_name: api-gateway
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=true
+      - SCHEMA_VALIDATOR_URL=http://schema-validator:8000
+      - QUERY_GENERATOR_URL=http://query-generator:8000
+      - QUERY_EXECUTOR_URL=http://query-executor:8000
+    depends_on:
+      - schema-validator
+      - query-generator
+      - query-executor
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - text-to-sql-network
+
+volumes:
+  postgres_data:
+  ollama_data:
+
+networks:
+  text-to-sql-network:
+    driver: bridge
