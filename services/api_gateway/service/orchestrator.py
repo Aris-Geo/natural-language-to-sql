@@ -26,7 +26,8 @@ class TextToSQLOrchestrator:
         debug_info = DebugInfo(
             generated_sql="",
             schema_tables_count=0,
-            services_called=[]
+            services_called=[],
+            model_used="unknown"
         )
         service_errors = {}
         
