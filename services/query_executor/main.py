@@ -20,7 +20,7 @@ app.add_middleware(
 )
 
 app.include_router(health.router, prefix="/health", tags=["health"])
-app.include_router(execute.router, prefix="/execute", tags=["execution"])
+app.include_router(execute.router, prefix="", tags=["execution"])
 
 @app.get("/")
 async def root():

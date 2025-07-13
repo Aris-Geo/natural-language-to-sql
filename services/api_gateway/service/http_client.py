@@ -47,7 +47,7 @@ class ServiceHTTPClient:
     
     async def call_query_generator(self, question: str, schema_data: Dict[str, Any], include_explanation: bool = False) -> Dict[str, Any]:
         try:
-            url = f"{self.services['query_generator']}generate/sql"
+            url = f"{self.services['query_generator']}/sql"
             
             payload = {
                 "question": question,

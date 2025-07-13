@@ -20,7 +20,7 @@ app.add_middleware(
 )
 
 app.include_router(health.router, prefix="/health", tags=["health"])
-app.include_router(schema.router, prefix="/schema", tags=["schema"])
+app.include_router(schema.router, prefix="", tags=["schema"])
 
 @app.get("/")
 async def root():
