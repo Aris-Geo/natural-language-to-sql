@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from services.schema_validator import SchemaIntrospector
+from service.schema_identifier import SchemaIntrospector
 from schemas import SchemaRequest, SchemaResponse
 
 router = APIRouter()

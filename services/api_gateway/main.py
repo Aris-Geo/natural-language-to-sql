@@ -22,7 +22,7 @@ app.add_middleware(
 )
 
 app.include_router(health.router, prefix="/health", tags=["health"])
-app.include_router(query.router, prefix="", tags=["text-to-sql"])
+app.include_router(query.router, prefix="/api", tags=["text-to-sql"])
 
 @app.get("/")
 async def root():

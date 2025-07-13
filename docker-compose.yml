@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # PostgreSQL with sample data
   postgres:
@@ -13,7 +11,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./infrastructure/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql # include this if you wish to use the init.sql file and test your dataset
+      - ./infrastructure/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U demo_user -d ecommerce_demo"]
       interval: 10s
@@ -22,7 +20,7 @@ services:
     networks:
       - text-to-sql-network
 
-  # ollama service for LLM inference
+  # Ollama service for LLM inference
   ollama:
     image: ollama/ollama:latest
     container_name: ollama
@@ -39,11 +37,11 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 60s
+      start_period: 120s
     networks:
       - text-to-sql-network
 
-  # schema validation service
+  # Schema validation service
   schema-validator:
     build: ./services/schema_validator
     container_name: schema-validator
@@ -60,7 +58,7 @@ services:
     networks:
       - text-to-sql-network
 
-  # query generation service
+  # Query generation service
   query-generator:
     build: ./services/query_generator
     container_name: query-generator
@@ -80,6 +78,7 @@ services:
     networks:
       - text-to-sql-network
 
+  # Query execution service
   query-executor:
     build: ./services/query_executor
     container_name: query-executor
@@ -93,6 +92,7 @@ services:
     networks:
       - text-to-sql-network
 
+  # API Gateway - Main entry point
   api-gateway:
     build: ./services/api_gateway
     container_name: api-gateway
@@ -100,13 +100,16 @@ services:
       - "8000:8000"
     environment:
       - DEBUG=true
-      - SCHEMA_VALIDATOR_URL=http://schema-validator:8000
-      - QUERY_GENERATOR_URL=http://query-generator:8000
-      - QUERY_EXECUTOR_URL=http://query-executor:8000
+      - DEFAULT_DB_HOST=postgres
+      - DEFAULT_DB_PORT=5432
+      - DEFAULT_DB_NAME=ecommerce_demo
+      - DEFAULT_DB_USERNAME=demo_user
+      - DEFAULT_DB_PASSWORD=demo_pass
     depends_on:
       - schema-validator
       - query-generator
       - query-executor
+      - postgres
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
