@@ -38,7 +38,7 @@ class DebugInfo(BaseModel):
     generated_sql: str
     schema_tables_count: int
     validation_warnings: List[str] = []
-    model_used: str
+    model_used: str = "unknown"
     services_called: List[str] = []
 
 class TextToSQLResponse(BaseModel):
